@@ -4,8 +4,9 @@ const objs = []
 
 const sort = R.curry((packageName, end) => {
   S.log(`Sorting results... please allow a few minutes`, {})
+  let csv = "author, repo, repoUrl, stars, forks\r\n";
   R.times((i) => {
-    const res = fs.readFileSync(`/Users/dteiml/dev/github-by-stars/dataset/${packageName}/${i}.html`, { encoding: 'utf-8' })
+    const res = fs.readFileSync(`./dataset/${packageName}/${i}.html`, { encoding: 'utf-8' })
     const $ = cheerio.load(res)
     const els = $(`div.Box > div.Box-row`).toArray()
     els.map(el => {
@@ -14,24 +15,29 @@ const sort = R.curry((packageName, end) => {
       const author = user || org
       const repo = $('a[data-hovercard-type="repository"]', el).text()
       const repoUrl = `https://github.com` + $('a[data-hovercard-type="repository"]', el).attr('href')
-      const noOf = $('span.text-gray-light.text-bold.pl-3', el).text()
+      const noOf = $('.pl-3', el).text()
       const [stars, forks] = R.map(Number.parseInt, R.match(/\d+/g, noOf))
-      const a = { author, repo, repoUrl, stars, forks }
-      objs.push(a)
-      // const aLog = util.inspect(a)
-      // S.log(`aLog`, aLog)
+      if(stars >= 50){
+        csv += `${author}, ${repo}, ${repoUrl}, ${stars}, ${forks}\r\n`;
+      }
     })
   }, end)
 
-  const sorted = R.pipe(
+/*   const sorted = R.pipe(
     R.uniq,
     R.sortBy(R.prop(`stars`)),
     R.reverse,
     R.slice(0, 10),
     util.inspect,
   )(objs)
+  S.log(`sorted`, sorted) */
 
-  S.log(`sorted`, sorted)
+  fs.writeFile("output.csv", csv, 'utf8', function (err) {
+    if (err) {
+      console.log("An error occurred while writing JSON Object to File.");
+      return console.log(err);
+    }
+  })
 })
 
 export default sort
